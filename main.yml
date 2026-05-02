@@ -32,4 +32,4 @@ node scripts/createNewEthereumIdentity.js
 
 
 𝗖𝗼𝗺𝗺𝗮𝗻𝗱 𝟭𝟬
-node scripts/manualLinkHumanToAgent.js --challenge '{"name":"Himawari7","description":"Mominky11 gent"}'
+node scripts/manualLinkHumanToAgent.js --challenge '{"name":"Himawari7","description":"Mominky11 Agent"}'

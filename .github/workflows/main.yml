@@ -1,0 +1,10 @@
+pkg update && pkg upgrade
+pkg install nodejs
+pkg install git
+(optional – to check if everything is correct until now) node -v
+git clone https://github.com/BillionsNetwork/verified-agent-identity
+cd verified-agent-identity
+npm install shell-quote @iden3/js-iden3-auth @0xpolygonid/js-sdk ethers uuid cross-fetch
+npx clawhub@latest install verified-agent-identity
+node scripts/createNewEthereumIdentity.js
+node scripts/manualLinkHumanToAgent.js --challenge '{"name":"Himawari7","description":"Mominky agent"}'

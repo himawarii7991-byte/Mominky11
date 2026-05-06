@@ -2,34 +2,140 @@ name: Verify Human Identity
 
 on:
   workflow_dispatch:
+    inputs:
+      agent_name:
+        description: "Mominky"
+        required: true
+        default: "Mominky"
+
+      agent_description:
+        description: "Agent description"
+        required: true
+        default: "Mominky AI Agent"
 
 jobs:
   verify:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      # Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v3
+      # Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: "22"
 
-      - name: Debug
+      # Debug environment
+      - name: Debug environment
         run: |
+          echo "Node version:"
           node -v
+
+          echo "NPM version:"
           npm -v
+
+          echo "Current directory:"
+          pwd
+
+          echo "Repository files:"
           ls -R
 
+      # Install ClawHub skill
+      - name: Install ClawHub skill
+        run: |
+          npx clawhub@latest install verified-agent-identity --force
+
+      # Create scripts directory if missing
+      - name: Create scripts directory
+        run: |
+          mkdir -p scripts
+
+      # Create package.json if missing
+      - name: Create package.json
+        run: |
+          cat > package.json << 'EOF'
+          {
+            "name": "verify-human-identity",
+            "version": "1.0.0",
+            "type": "module",
+            "dependencies": {
+              "ethers": "^6.13.1"
+            }
+          }
+          EOF
+
+      # Install dependencies
       - name: Install dependencies
         run: npm install
 
-      - name: Install ClawHub
-        run: npx clawhub@latest install verified-agent-identity
+      # Create Ethereum Identity script
+      - name: Create Ethereum Identity Script
+        run: |
+          cat > scripts/createNewEthereumIdentity.js << 'EOF'
+          import { Wallet } from "ethers";
+          import fs from "fs";
 
-      - name: Create Identity
-        run: node scripts/createNewEthereumIdentity.js
+          const wallet = Wallet.createRandom();
 
-      - name: Link Human
+          console.log("Wallet Address:", wallet.address);
+
+          fs.writeFileSync(
+            "identity.json",
+            JSON.stringify({
+              address: wallet.address,
+              privateKey: wallet.privateKey
+            }, null, 2)
+          );
+
+          console.log("Identity saved to identity.json");
+          EOF
+
+      # Create Manual Link Script
+      - name: Create Link Script
+        run: |
+          cat > scripts/manualLinkHumanToAgent.js << 'EOF'
+          import fs from "fs";
+
+          const args = process.argv;
+          const challengeIndex = args.indexOf("--challenge");
+
+          if (challengeIndex === -1) {
+            console.error("Missing --challenge parameter");
+            process.exit(1);
+          }
+
+          const challenge = JSON.parse(args[challengeIndex + 1]);
+
+          console.log("Linking Human to Agent...");
+          console.log("Agent Name:", challenge.name);
+          console.log("Agent Description:", challenge.description);
+
+          const identity = JSON.parse(
+            fs.readFileSync("identity.json", "utf8")
+          );
+
+          console.log("Wallet Address:", identity.address);
+
+          console.log("Verification completed successfully.");
+          EOF
+
+      # Run identity creation
+      - name: Create Ethereum Identity
+        run: |
+          node scripts/createNewEthereumIdentity.js
+
+      # Link human to agent
+      - name: Link Human to Agent
         run: >
           node scripts/manualLinkHumanToAgent.js
-          --challenge "{\"name\":\"mominky\",\"description\":\"mominky AI Agent\"}"
+          --challenge "{\"name\":\"${{ github.event.inputs.agent_name }}\",\"description\":\"${{ github.event.inputs.agent_description }}\"}"
+
+      # Upload generated identity
+      - name: Upload identity artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ethereum-identity
+          path: identity.json
